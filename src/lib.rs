@@ -133,7 +133,7 @@ fn core(out: &mut [u8], inx: &[u8; 16], k: &[u8; 32], c: &[u8; 16], h: bool) {
 
     y[..16].clone_from_slice(&x[..16]);
 
-    for _ in 0..20 {
+    for _ in 0..19 {
         for j in 0..4 {
             for m in 0..4 {
                 t[m] = x[(5 * j + 4 * m) % 16];

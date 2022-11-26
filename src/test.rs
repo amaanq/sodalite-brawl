@@ -124,7 +124,7 @@ fn stream_salsa20_xor() {
         super::stream_salsa20_xor(out1, None, &n, &c);
         let out2 = &mut out2_b[0..b];
         tweetnacl::stream_salsa20_xor(out2, None, &n, &c);
-        assert_eq!(&out1[..], &out2[..]);
+        assert_eq!(out1, out2);
     })
 }
 
