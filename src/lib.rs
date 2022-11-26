@@ -64,20 +64,20 @@ const I: Gf = [
 ];
 
 fn l32(x: W<u32>, c: usize /* int */) -> W<u32> {
-    (x << c) | ((x & W(0xffffffff)) >> (32 - c))
+    (x << c) | ((x & W(0xffff_ffff)) >> (32 - c))
 }
 
 fn ld32(x: &[u8; 4]) -> W<u32> {
-    let mut u = x[3] as u32;
-    u = (u << 8) | (x[2] as u32);
-    u = (u << 8) | (x[1] as u32);
-    W((u << 8) | (x[0] as u32))
+    let mut u = u32::from(x[3]);
+    u = (u << 8) | u32::from(x[2]);
+    u = (u << 8) | u32::from(x[1]);
+    W((u << 8) | u32::from(x[0]))
 }
 
 fn dl64(x: &[u8; 8]) -> W<u64> {
     let mut u = 0u64;
     for v in x {
-        u = u << 8 | (*v as u64);
+        u = u << 8 | u64::from(*v);
     }
     W(u)
 }
@@ -100,7 +100,7 @@ fn vn(x: &[u8], y: &[u8]) -> isize {
     assert_eq!(x.len(), y.len());
     let mut d = 0u32;
     for i in 0..x.len() {
-        d |= (x[i] ^ y[i]) as u32;
+        d |= u32::from(x[i] ^ y[i]);
     }
 
     /* FIXME: check this cast. appears this function might be attempting to sign extend. This also
@@ -222,7 +222,7 @@ pub fn stream_salsa20_xor(
         }
         let mut u = 1u32;
         for zx in z.iter_mut().skip(8) {
-            u += (*zx) as u32;
+            u += u32::from(*zx);
             *zx = u as u8;
             u >>= 8;
         }
@@ -303,7 +303,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
     let mut h = [0u32; 17];
 
     for j in 0..16 {
-        r[j] = k[j] as u32;
+        r[j] = u32::from(k[j]);
     }
 
     r[3] &= 15;
@@ -319,7 +319,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
 
         let j_end = cmp::min(m.len(), 16);
         for j in 0..j_end {
-            c[j] = m[j] as u32;
+            c[j] = u32::from(m[j]);
         }
         c[j_end] = 1;
         m = &m[j_end..];
@@ -327,12 +327,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
         let mut x = [0u32; 17];
         for i in 0..17 {
             for j in 0..17 {
-                x[i] += h[j]
-                    * (if j <= i {
-                        r[i - j]
-                    } else {
-                        320 * r[i + 17 - j]
-                    });
+                x[i] += h[j] * (if j <= i { r[i - j] } else { 320 * r[i + 17 - j] });
             }
         }
 
@@ -366,7 +361,7 @@ pub fn onetimeauth(out: &mut OnetimeauthHash, mut m: &[u8], k: &OnetimeauthKey) 
     /* FIXME: extra zeroing */
     let mut c = [0u32; 17];
     for j in 0..16 {
-        c[j] = k[j + 16] as u32;
+        c[j] = u32::from(k[j + 16]);
     }
     c[16] = 0;
     add1305(&mut h, &c);
@@ -513,7 +508,7 @@ fn par25519(a: Gf) -> u8 {
 
 fn unpack25519(o: &mut Gf, n: &[u8]) {
     for i in 0..16 {
-        o[i] = n[2 * i] as i64 + ((n[2 * i + 1] as i64) << 8);
+        o[i] = i64::from(n[2 * i]) + (i64::from(n[2 * i + 1]) << 8);
     }
     o[15] &= 0x7fff;
 }
@@ -656,11 +651,7 @@ pub fn scalarmult(q: &mut [u8; 32], n: &[u8; 32], p: &[u8; 32]) {
     *index_fixed!(&mut x[32..];..16) = tmp;
 
     /* XXX: avoid aliasing with an extra copy */
-    gf_mult(
-        &mut tmp,
-        *index_fixed!(&x[16..];..16),
-        *index_fixed!(&x[32..];..16),
-    );
+    gf_mult(&mut tmp, *index_fixed!(&x[16..];..16), *index_fixed!(&x[32..];..16));
     *index_fixed!(&mut x[16..];..16) = tmp;
     pack25519(q, *index_fixed!(&x[16..];..16));
 }
@@ -788,86 +779,86 @@ fn sigma1(x: W<u64>) -> W<u64> {
 }
 
 const K: [u64; 80] = [
-    0x428a2f98d728ae22,
-    0x7137449123ef65cd,
-    0xb5c0fbcfec4d3b2f,
-    0xe9b5dba58189dbbc,
-    0x3956c25bf348b538,
-    0x59f111f1b605d019,
-    0x923f82a4af194f9b,
-    0xab1c5ed5da6d8118,
-    0xd807aa98a3030242,
-    0x12835b0145706fbe,
-    0x243185be4ee4b28c,
-    0x550c7dc3d5ffb4e2,
-    0x72be5d74f27b896f,
-    0x80deb1fe3b1696b1,
-    0x9bdc06a725c71235,
-    0xc19bf174cf692694,
-    0xe49b69c19ef14ad2,
-    0xefbe4786384f25e3,
-    0x0fc19dc68b8cd5b5,
-    0x240ca1cc77ac9c65,
-    0x2de92c6f592b0275,
-    0x4a7484aa6ea6e483,
-    0x5cb0a9dcbd41fbd4,
-    0x76f988da831153b5,
-    0x983e5152ee66dfab,
-    0xa831c66d2db43210,
-    0xb00327c898fb213f,
-    0xbf597fc7beef0ee4,
-    0xc6e00bf33da88fc2,
-    0xd5a79147930aa725,
-    0x06ca6351e003826f,
-    0x142929670a0e6e70,
-    0x27b70a8546d22ffc,
-    0x2e1b21385c26c926,
-    0x4d2c6dfc5ac42aed,
-    0x53380d139d95b3df,
-    0x650a73548baf63de,
-    0x766a0abb3c77b2a8,
-    0x81c2c92e47edaee6,
-    0x92722c851482353b,
-    0xa2bfe8a14cf10364,
-    0xa81a664bbc423001,
-    0xc24b8b70d0f89791,
-    0xc76c51a30654be30,
-    0xd192e819d6ef5218,
-    0xd69906245565a910,
-    0xf40e35855771202a,
-    0x106aa07032bbd1b8,
-    0x19a4c116b8d2d0c8,
-    0x1e376c085141ab53,
-    0x2748774cdf8eeb99,
-    0x34b0bcb5e19b48a8,
-    0x391c0cb3c5c95a63,
-    0x4ed8aa4ae3418acb,
-    0x5b9cca4f7763e373,
-    0x682e6ff3d6b2b8a3,
-    0x748f82ee5defb2fc,
-    0x78a5636f43172f60,
-    0x84c87814a1f0ab72,
-    0x8cc702081a6439ec,
-    0x90befffa23631e28,
-    0xa4506cebde82bde9,
-    0xbef9a3f7b2c67915,
-    0xc67178f2e372532b,
-    0xca273eceea26619c,
-    0xd186b8c721c0c207,
-    0xeada7dd6cde0eb1e,
-    0xf57d4f7fee6ed178,
-    0x06f067aa72176fba,
-    0x0a637dc5a2c898a6,
-    0x113f9804bef90dae,
-    0x1b710b35131c471b,
-    0x28db77f523047d84,
-    0x32caab7b40c72493,
-    0x3c9ebe0a15c9bebc,
-    0x431d67c49c100d4c,
-    0x4cc5d4becb3e42b6,
-    0x597f299cfc657e2a,
-    0x5fcb6fab3ad6faec,
-    0x6c44198c4a475817,
+    0x428a_2f98_d728_ae22,
+    0x7137_4491_23ef_65cd,
+    0xb5c0_fbcf_ec4d_3b2f,
+    0xe9b5_dba5_8189_dbbc,
+    0x3956_c25b_f348_b538,
+    0x59f1_11f1_b605_d019,
+    0x923f_82a4_af19_4f9b,
+    0xab1c_5ed5_da6d_8118,
+    0xd807_aa98_a303_0242,
+    0x1283_5b01_4570_6fbe,
+    0x2431_85be_4ee4_b28c,
+    0x550c_7dc3_d5ff_b4e2,
+    0x72be_5d74_f27b_896f,
+    0x80de_b1fe_3b16_96b1,
+    0x9bdc_06a7_25c7_1235,
+    0xc19b_f174_cf69_2694,
+    0xe49b_69c1_9ef1_4ad2,
+    0xefbe_4786_384f_25e3,
+    0x0fc1_9dc6_8b8c_d5b5,
+    0x240c_a1cc_77ac_9c65,
+    0x2de9_2c6f_592b_0275,
+    0x4a74_84aa_6ea6_e483,
+    0x5cb0_a9dc_bd41_fbd4,
+    0x76f9_88da_8311_53b5,
+    0x983e_5152_ee66_dfab,
+    0xa831_c66d_2db4_3210,
+    0xb003_27c8_98fb_213f,
+    0xbf59_7fc7_beef_0ee4,
+    0xc6e0_0bf3_3da8_8fc2,
+    0xd5a7_9147_930a_a725,
+    0x06ca_6351_e003_826f,
+    0x1429_2967_0a0e_6e70,
+    0x27b7_0a85_46d2_2ffc,
+    0x2e1b_2138_5c26_c926,
+    0x4d2c_6dfc_5ac4_2aed,
+    0x5338_0d13_9d95_b3df,
+    0x650a_7354_8baf_63de,
+    0x766a_0abb_3c77_b2a8,
+    0x81c2_c92e_47ed_aee6,
+    0x9272_2c85_1482_353b,
+    0xa2bf_e8a1_4cf1_0364,
+    0xa81a_664b_bc42_3001,
+    0xc24b_8b70_d0f8_9791,
+    0xc76c_51a3_0654_be30,
+    0xd192_e819_d6ef_5218,
+    0xd699_0624_5565_a910,
+    0xf40e_3585_5771_202a,
+    0x106a_a070_32bb_d1b8,
+    0x19a4_c116_b8d2_d0c8,
+    0x1e37_6c08_5141_ab53,
+    0x2748_774c_df8e_eb99,
+    0x34b0_bcb5_e19b_48a8,
+    0x391c_0cb3_c5c9_5a63,
+    0x4ed8_aa4a_e341_8acb,
+    0x5b9c_ca4f_7763_e373,
+    0x682e_6ff3_d6b2_b8a3,
+    0x748f_82ee_5def_b2fc,
+    0x78a5_636f_4317_2f60,
+    0x84c8_7814_a1f0_ab72,
+    0x8cc7_0208_1a64_39ec,
+    0x90be_fffa_2363_1e28,
+    0xa450_6ceb_de82_bde9,
+    0xbef9_a3f7_b2c6_7915,
+    0xc671_78f2_e372_532b,
+    0xca27_3ece_ea26_619c,
+    0xd186_b8c7_21c0_c207,
+    0xeada_7dd6_cde0_eb1e,
+    0xf57d_4f7f_ee6e_d178,
+    0x06f0_67aa_7217_6fba,
+    0x0a63_7dc5_a2c8_98a6,
+    0x113f_9804_bef9_0dae,
+    0x1b71_0b35_131c_471b,
+    0x28db_77f5_2304_7d84,
+    0x32ca_ab7b_40c7_2493,
+    0x3c9e_be0a_15c9_bebc,
+    0x431d_67c4_9c10_0d4c,
+    0x4cc5_d4be_cb3e_42b6,
+    0x597f_299c_fc65_7e2a,
+    0x5fcb_6fab_3ad6_faec,
+    0x6c44_198c_4a47_5817,
 ];
 
 fn hashblocks(x: &mut [u8], mut m: &[u8]) -> usize {
@@ -958,7 +949,7 @@ pub fn hash(out: &mut Hash, mut m: &[u8]) {
     /* FIXME: check cast to u64 */
     let l = x.len() - 8;
     ts64(index_fixed!(&mut x[l..];..8), (b << 3) as u64);
-    hashblocks(&mut h, &x);
+    hashblocks(&mut h, x);
 
     out[..64].clone_from_slice(&h[..64]);
 }
@@ -1120,7 +1111,7 @@ pub fn reduce(r: &mut [u8; 64]) {
     let mut x = [0i64; 64];
     for i in 0..64 {
         /* FIXME: this cast needs to be verified */
-        x[i] = (r[i] as u64) as i64;
+        x[i] = u64::from(r[i]) as i64;
     }
     for rx in r.iter_mut().take(64) {
         *rx = 0;
@@ -1165,13 +1156,13 @@ pub fn sign_attached(sm: &mut [u8], m: &[u8], sk: &SignSecretKey) {
     let mut x = [0i64; 64];
     for i in 0..32 {
         /* FIXME: check this cast */
-        x[i] = r[i] as u64 as i64;
+        x[i] = u64::from(r[i]) as i64;
     }
 
     for i in 0..32 {
         for j in 0..32 {
             /* FIXME: check this cast */
-            x[i + j] += ((h[i] as u64) * (d[j] as u64)) as i64;
+            x[i + j] += (u64::from(h[i]) * u64::from(d[j])) as i64;
         }
     }
 

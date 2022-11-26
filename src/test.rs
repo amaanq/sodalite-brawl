@@ -43,7 +43,7 @@ fn mod_l() {
 
         rng.fill_bytes(&mut r[..]);
         for v in x.iter_mut() {
-            *v = rng.gen::<u16>() as i64;
+            *v = i64::from(rng.gen::<u16>());
         }
 
         let mut r2 = r;

@@ -38,7 +38,9 @@ pub fn core_hsalsa20(out: &mut [u8], inx: &[u8], k: &[u8], c: &[u8]) {
 }
 
 pub fn stream_salsa20_xor(c: &mut [u8], m: Option<&[u8]>, n: &[u8], k: &[u8; 32]) {
-    m.map(|x| assert_eq!(x.len(), c.len()));
+    if let Some(x) = m {
+        assert_eq!(x.len(), c.len());
+    }
     unsafe {
         sys::crypto_stream_salsa20_tweet_xor(
             c.as_mut_ptr(),
@@ -241,7 +243,7 @@ pub fn sign_keypair_seed(pk: &mut [u8; 32], sk: &mut [u8; 64], seed: &[u8; 32]) 
 
 pub fn mod_l(r: &mut [u8; 32], x: &mut [i64; 64]) {
     let mut x_sys = [0 as sys::c_longlong; 64];
-    for (i, v) in x.into_iter().enumerate() {
+    for (i, v) in x.iter_mut().enumerate() {
         x_sys[i] = *v as sys::c_longlong;
     }
     unsafe {
